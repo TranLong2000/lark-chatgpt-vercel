@@ -5,14 +5,22 @@ module.exports = async (req, res) => {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
+  const body = req.body;
+
+  // Xử lý xác thực webhook (challenge)
+  if (body.challenge) {
+    return res.status(200).json({ challenge: body.challenge });
+  }
+
   try {
-    const body = req.body;
+    // Lấy tin nhắn người dùng từ payload Lark
     const userMessage = body?.event?.text || body?.message?.text || '';
 
     if (!userMessage) {
       return res.status(400).json({ message: 'No user message found' });
     }
 
+    // Gọi OpenAI ChatGPT API
     const openaiRes = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
@@ -29,6 +37,7 @@ module.exports = async (req, res) => {
 
     const reply = openaiRes.data.choices[0].message.content;
 
+    // Trả kết quả về Lark Messenger
     return res.json({
       msg_type: 'text',
       content: { text: reply },
